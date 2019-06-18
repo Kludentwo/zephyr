@@ -48,7 +48,7 @@ struct adc_hdl adc_list[] = {
 };
 
 struct args_index {
-	u8_t adc;
+	s8_t adc;
 	u8_t channel;
 	u8_t conf;
 	u8_t acq_unit;
@@ -57,26 +57,22 @@ struct args_index {
 struct args_number {
 	u8_t help;
 	u8_t channel;
-	u8_t gain;
-	u8_t ref;
 	u8_t acq_time;
 	u8_t resolution;
 	u8_t read;
 };
 
 static const struct args_index args_indx = {
-	.adc = 1,
-	.channel = 2,
-	.conf = 2,
-	.acq_unit = 3,
+	.adc = -1,
+	.channel = 1,
+	.conf = 1,
+	.acq_unit = 2,
 };
 
 static const struct args_number args_no = {
 	.help = 1,
-	.channel = 3,
-	.gain = 3,
-	.ref = 3,
-	.acq_time = 4,
+	.channel = 2,
+	.acq_time = 3,
 	.resolution = 3,
 	.read = 3,
 };
@@ -104,7 +100,7 @@ static int cmd_adc_channel(const struct shell *shell, size_t argc, char **argv)
 
 	if (argc != args_no.channel) {
 		shell_fprintf(shell, SHELL_NORMAL,
-				"Usage: channel <adc> <channel_id>\n");
+				"Usage: channel <channel_id>\n");
 		return 0;
 	}
 
@@ -135,20 +131,20 @@ struct gain_string_to_enum {
 };
 
 static struct gain_string_to_enum gain_list[] = {
-	{ .string = "1_6", .gain = ADC_GAIN_1_6 },
-	{ .string = "1_5", .gain = ADC_GAIN_1_5 },
-	{ .string = "1_4", .gain = ADC_GAIN_1_4 },
-	{ .string = "1_3", .gain = ADC_GAIN_1_3 },
-	{ .string = "1_2", .gain = ADC_GAIN_1_2 },
-	{ .string = "2_3", .gain = ADC_GAIN_2_3 },
-	{ .string = "1", .gain = ADC_GAIN_1 },
-	{ .string = "2", .gain = ADC_GAIN_2 },
-	{ .string = "3", .gain = ADC_GAIN_3 },
-	{ .string = "4", .gain = ADC_GAIN_4 },
-	{ .string = "8", .gain = ADC_GAIN_8 },
-	{ .string = "16", .gain = ADC_GAIN_16 },
-	{ .string = "32", .gain = ADC_GAIN_32 },
-	{ .string = "64", .gain = ADC_GAIN_64 }
+	{ .string = "ADC_GAIN_1_6", .gain = ADC_GAIN_1_6 },
+	{ .string = "ADC_GAIN_1_5", .gain = ADC_GAIN_1_5 },
+	{ .string = "ADC_GAIN_1_4", .gain = ADC_GAIN_1_4 },
+	{ .string = "ADC_GAIN_1_3", .gain = ADC_GAIN_1_3 },
+	{ .string = "ADC_GAIN_1_2", .gain = ADC_GAIN_1_2 },
+	{ .string = "ADC_GAIN_2_3", .gain = ADC_GAIN_2_3 },
+	{ .string = "ADC_GAIN_1", .gain = ADC_GAIN_1 },
+	{ .string = "ADC_GAIN_2", .gain = ADC_GAIN_2 },
+	{ .string = "ADC_GAIN_3", .gain = ADC_GAIN_3 },
+	{ .string = "ADC_GAIN_4", .gain = ADC_GAIN_4 },
+	{ .string = "ADC_GAIN_8", .gain = ADC_GAIN_8 },
+	{ .string = "ADC_GAIN_16", .gain = ADC_GAIN_16 },
+	{ .string = "ADC_GAIN_32", .gain = ADC_GAIN_32 },
+	{ .string = "ADC_GAIN_64", .gain = ADC_GAIN_64 }
 };
 
 static int cmd_adc_gain(const struct shell *shell, size_t argc, char **argv)
@@ -158,17 +154,7 @@ static int cmd_adc_gain(const struct shell *shell, size_t argc, char **argv)
 	int chosen_adc;
 	int i;
 
-	if (argc != args_no.gain) {
-		shell_fprintf(shell, SHELL_NORMAL,
-				"Usage: gain <adc> <gain>.\n<gain> options (x_y = x/y):\n");
-		for (i = 0; i < ARRAY_SIZE(gain_list); i++) {
-			shell_fprintf(shell, SHELL_NORMAL, "%s\n",
-					gain_list[i].string);
-		}
-
-		return 0;
-	}
-	chosen_adc = get_adc_from_list(argv[args_indx.adc]);
+	chosen_adc = get_adc_from_list(argv[-2]);
 	if (chosen_adc < 0) {
 		return -EINVAL;
 	}
@@ -179,7 +165,7 @@ static int cmd_adc_gain(const struct shell *shell, size_t argc, char **argv)
 		return -ENODEV;
 	}
 	for (i = 0; i < ARRAY_SIZE(gain_list); i++) {
-		if (!strcmp(argv[args_indx.conf], gain_list[i].string)) {
+		if (!strcmp(argv[0], gain_list[i].string)) {
 			adc_list[chosen_adc].channel_config.gain =
 				gain_list[i].gain;
 			retval = adc_channel_setup(adc_dev,
@@ -190,6 +176,8 @@ static int cmd_adc_gain(const struct shell *shell, size_t argc, char **argv)
 	}
 	return retval;
 }
+
+
 static int cmd_adc_acq(const struct shell *shell, size_t argc, char **argv)
 {
 	int retval = 0;
@@ -199,7 +187,7 @@ static int cmd_adc_acq(const struct shell *shell, size_t argc, char **argv)
 
 	if (argc != args_no.acq_time) {
 		shell_fprintf(shell, SHELL_NORMAL,
-				"Usage: acq_time <adc> <time> <unit>\nunits: us, ns, ticks\n");
+				"Usage: acq_time <time> <unit>\nunits: us, ns, ticks\n");
 		return 0;
 	}
 
@@ -245,7 +233,7 @@ static int cmd_adc_reso(const struct shell *shell, size_t argc, char **argv)
 	if (argc != args_no.resolution ||
 			!isdigit((unsigned char)argv[args_indx.conf][0])) {
 		shell_fprintf(shell, SHELL_NORMAL,
-				"Usage: resolution <adc> <resolution>\n");
+				"Usage: resolution <resolution>\n");
 		return 0;
 	}
 
@@ -291,17 +279,7 @@ static int cmd_adc_ref(const struct shell *shell, size_t argc, char **argv)
 	int chosen_adc;
 	int i;
 
-	if (argc != args_no.ref) {
-		shell_fprintf(shell, SHELL_NORMAL,
-				"Usage: ref <adc> <ref>\n<ref> options:\n");
-		for (i = 0; i < ARRAY_SIZE(reference_list); i++) {
-			shell_fprintf(shell, SHELL_NORMAL,
-					"%s\n", reference_list[i].string);
-		}
-		return 0;
-	}
-
-	chosen_adc = get_adc_from_list(argv[args_indx.adc]);
+	chosen_adc = get_adc_from_list(argv[-2]);
 	if (chosen_adc < 0) {
 		return -EINVAL;
 	}
@@ -312,7 +290,7 @@ static int cmd_adc_ref(const struct shell *shell, size_t argc, char **argv)
 		return -ENODEV;
 	}
 	for (i = 0; i < ARRAY_SIZE(reference_list); i++) {
-		if (!strcmp(argv[args_indx.conf], reference_list[i].string)) {
+		if (!strcmp(argv[0], reference_list[i].string)) {
 			adc_list[chosen_adc].channel_config.reference =
 				reference_list[i].reference;
 			retval = adc_channel_setup(adc_dev,
@@ -324,6 +302,7 @@ static int cmd_adc_ref(const struct shell *shell, size_t argc, char **argv)
 	retval = adc_channel_setup(adc_dev, &adc_list[chosen_adc].channel_config);
 	return retval;
 }
+
 #define BUFFER_SIZE 1
 static int cmd_adc_read(const struct shell *shell, size_t argc, char **argv)
 {
@@ -334,7 +313,7 @@ static int cmd_adc_read(const struct shell *shell, size_t argc, char **argv)
 
 	if (argc != args_no.read) {
 		shell_fprintf(shell, SHELL_NORMAL,
-				"Usage: read <adc> <channel>\n");
+				"Usage: read <channel>\n");
 		return 0;
 	}
 	chosen_adc = get_adc_from_list(argv[args_indx.adc]);
@@ -374,9 +353,6 @@ static int cmd_adc_print(const struct shell *shell, size_t argc, char **argv)
 	u8_t channel_id;
 	u8_t resolution;
 
-	if (argc < 2) {
-		shell_fprintf(shell, SHELL_NORMAL, "usage: print <adc>\n");
-	}
 	chosen_adc = get_adc_from_list(argv[args_indx.adc]);
 	if (chosen_adc < 0) {
 		return 0;
@@ -410,17 +386,60 @@ static int cmd_adc_print(const struct shell *shell, size_t argc, char **argv)
 			resolution);
 	return 0;
 }
+SHELL_STATIC_SUBCMD_SET_CREATE(sub_ref_cmds,
+	/* Alphabetically sorted. */
+	SHELL_CMD(VDD_1, NULL, "REF", cmd_adc_ref),
+	SHELL_CMD(VDD_1_2, NULL, "REF", cmd_adc_ref),
+	SHELL_CMD(VDD_1_3, NULL, "REF", cmd_adc_ref),
+	SHELL_CMD(VDD_1_4, NULL, "REF", cmd_adc_ref),
+	SHELL_CMD(INT, NULL, "REF", cmd_adc_ref),
+	SHELL_CMD(EXT0, NULL, "REF", cmd_adc_ref),
+	SHELL_CMD(EXT1, NULL, "REF", cmd_adc_ref),
+	SHELL_SUBCMD_SET_END /* Array terminated. */
+);
 
-SHELL_STATIC_SUBCMD_SET_CREATE(sub_adc,
+
+SHELL_STATIC_SUBCMD_SET_CREATE(sub_gain_cmds,
+	/* Alphabetically sorted. */
+	SHELL_CMD(ADC_GAIN_1_6, NULL, "Gain", cmd_adc_gain),
+	SHELL_CMD(ADC_GAIN_1_5, NULL, "Gain", cmd_adc_gain),
+	SHELL_CMD(ADC_GAIN_1_4, NULL, "Gain", cmd_adc_gain),
+	SHELL_CMD(ADC_GAIN_1_3, NULL, "Gain", cmd_adc_gain),
+	SHELL_CMD(ADC_GAIN_1_2, NULL, "Gain", cmd_adc_gain),
+	SHELL_CMD(ADC_GAIN_2_3, NULL, "Gain", cmd_adc_gain),
+	SHELL_CMD(ADC_GAIN_1, NULL, "Gain", cmd_adc_gain),
+	SHELL_CMD(ADC_GAIN_2, NULL, "Gain", cmd_adc_gain),
+	SHELL_CMD(ADC_GAIN_3, NULL, "Gain", cmd_adc_gain),
+	SHELL_CMD(ADC_GAIN_4, NULL, "Gain", cmd_adc_gain),
+	SHELL_CMD(ADC_GAIN_8, NULL, "Gain", cmd_adc_gain),
+	SHELL_CMD(ADC_GAIN_16, NULL, "Gain", cmd_adc_gain),
+	SHELL_CMD(ADC_GAIN_32, NULL, "Gain", cmd_adc_gain),
+	SHELL_CMD(ADC_GAIN_64, NULL, "Gain", cmd_adc_gain),
+	SHELL_SUBCMD_SET_END /* Array terminated. */
+);
+
+
+SHELL_STATIC_SUBCMD_SET_CREATE(sub_adc_cmds,
 	/* Alphabetically sorted. */
 	SHELL_CMD(acq_time, NULL, "Configure acquisition time", cmd_adc_acq),
 	SHELL_CMD(channel_id, NULL, "Configure channel id", cmd_adc_channel),
-	SHELL_CMD(gain, NULL, "Configure gain", cmd_adc_gain),
+	SHELL_CMD(gain, &sub_gain_cmds, "Configure gain", NULL),
 	SHELL_CMD(print, NULL, "Print current configuration", cmd_adc_print),
 	SHELL_CMD(read, NULL, "Read adc value", cmd_adc_read),
-	SHELL_CMD(reference, NULL, "Configure reference", cmd_adc_ref),
+	SHELL_CMD(reference, &sub_ref_cmds, "Configure reference", NULL),
 	SHELL_CMD(resolution, NULL, "Configure resolution", cmd_adc_reso),
 	SHELL_SUBCMD_SET_END /* Array terminated. */
 );
+
+SHELL_STATIC_SUBCMD_SET_CREATE(sub_adc,
+#ifdef CONFIG_ADC_0
+	SHELL_CMD(ADC_0, &sub_adc_cmds, "ADC_0", NULL),
+#endif
+#ifdef CONFIG_ADC_1
+	SHELL_CMD(ADC_1, &sub_adc_cmds, "ADC_1", NULL),
+#endif
+	SHELL_SUBCMD_SET_END /* Array terminated. */
+);
+
 
 SHELL_CMD_REGISTER(adc, &sub_adc, "ADC commands", NULL);
