@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, Freescale Semiconductor, Inc.
+ * Copyright (c) 2016, Freescale Semiconductor, Inc.
  * Copyright 2016-2017 NXP
  * All rights reserved.
  *
@@ -24,308 +24,113 @@
 #define FSL_PWM_DRIVER_VERSION (MAKE_VERSION(2, 0, 0)) /*!< Version 2.0.0 */
 /*@}*/
 
-/*! Number of bits per submodule for software output control */
-#define PWM_SUBMODULE_SWCONTROL_WIDTH 2
-
-/*! @brief List of PWM submodules */
-typedef enum _pwm_submodule
-{
-    kPWM_Module_0 = 0U, /*!< Submodule 0 */
-    kPWM_Module_1,      /*!< Submodule 1 */
-    kPWM_Module_2,      /*!< Submodule 2 */
-    kPWM_Module_3       /*!< Submodule 3 */
-} pwm_submodule_t;
-
-/*! @brief List of PWM channels in each module */
-typedef enum _pwm_channels
-{
-    kPWM_PwmB = 0U,
-    kPWM_PwmA,
-    kPWM_PwmX
-} pwm_channels_t;
-
-/*! @brief List of PWM value registers */
-typedef enum _pwm_value_register
-{
-    kPWM_ValueRegister_0 = 0U, /*!< PWM Value0 register */
-    kPWM_ValueRegister_1,      /*!< PWM Value1 register */
-    kPWM_ValueRegister_2,      /*!< PWM Value2 register */
-    kPWM_ValueRegister_3,      /*!< PWM Value3 register */
-    kPWM_ValueRegister_4,      /*!< PWM Value4 register */
-    kPWM_ValueRegister_5       /*!< PWM Value5 register */
-} pwm_value_register_t;
-
-/*! @brief PWM clock source selection.*/
+/*! @brief PWM clock source select. */
 typedef enum _pwm_clock_source
 {
-    kPWM_BusClock = 0U,  /*!< The IPBus clock is used as the clock */
-    kPWM_ExternalClock,  /*!< EXT_CLK is used as the clock */
-    kPWM_Submodule0Clock /*!< Clock of the submodule 0 (AUX_CLK) is used as the source clock */
+    kPWM_PeripheralClock = 1U, /*!< The Peripheral clock is used as the clock */
+    kPWM_HighFrequencyClock,   /*!< High-frequency reference clock is used as the clock */
+    kPWM_LowFrequencyClock     /*!< Low-frequency reference clock(32KHz) is used as the clock */
 } pwm_clock_source_t;
 
-/*! @brief PWM prescaler factor selection for clock source*/
-typedef enum _pwm_clock_prescale
+/*!
+ * @brief PWM FIFO water mark select.
+ * Sets the data level at which the FIFO empty flag will be set
+ */
+typedef enum _pwm_fifo_water_mark
 {
-    kPWM_Prescale_Divide_1 = 0U, /*!< PWM clock frequency = fclk/1 */
-    kPWM_Prescale_Divide_2,      /*!< PWM clock frequency = fclk/2 */
-    kPWM_Prescale_Divide_4,      /*!< PWM clock frequency = fclk/4 */
-    kPWM_Prescale_Divide_8,      /*!< PWM clock frequency = fclk/8 */
-    kPWM_Prescale_Divide_16,     /*!< PWM clock frequency = fclk/16 */
-    kPWM_Prescale_Divide_32,     /*!< PWM clock frequency = fclk/32 */
-    kPWM_Prescale_Divide_64,     /*!< PWM clock frequency = fclk/64 */
-    kPWM_Prescale_Divide_128     /*!< PWM clock frequency = fclk/128 */
-} pwm_clock_prescale_t;
+    kPWM_FIFOWaterMark_1 = 0U, /*!< FIFO empty flag is set when there are more than or equal to 1 empty slots */
+    kPWM_FIFOWaterMark_2,      /*!< FIFO empty flag is set when there are more than or equal to 2 empty slots */
+    kPWM_FIFOWaterMark_3,      /*!< FIFO empty flag is set when there are more than or equal to 3 empty slots */
+    kPWM_FIFOWaterMark_4       /*!< FIFO empty flag is set when there are more than or equal to 4 empty slots */
+} pwm_fifo_water_mark_t;
 
-/*! @brief Options that can trigger a PWM FORCE_OUT */
-typedef enum _pwm_force_output_trigger
+/*!
+ * @brief PWM byte data swap select.
+ * It determines the byte ordering of the 16-bit data when it goes into the FIFO from the sample register.
+ */
+typedef enum _pwm_byte_data_swap
 {
-    kPWM_Force_Local = 0U,   /*!< The local force signal, CTRL2[FORCE], from the submodule is used to force updates */
-    kPWM_Force_Master,       /*!< The master force signal from submodule 0 is used to force updates */
-    kPWM_Force_LocalReload,  /*!< The local reload signal from this submodule is used to force updates without regard to
-                                the state of LDOK */
-    kPWM_Force_MasterReload, /*!< The master reload signal from submodule 0 is used to force updates if LDOK is set */
-    kPWM_Force_LocalSync,    /*!< The local sync signal from this submodule is used to force updates */
-    kPWM_Force_MasterSync,   /*!< The master sync signal from submodule0 is used to force updates */
-    kPWM_Force_External,     /*!< The external force signal, EXT_FORCE, from outside the PWM module causes updates */
-    kPWM_Force_ExternalSync  /*!< The external sync signal, EXT_SYNC, from outside the PWM module causes updates */
-} pwm_force_output_trigger_t;
+    kPWM_ByteNoSwap = 0U, /*!< byte ordering remains the same */
+    kPWM_ByteSwap         /*!< byte ordering is reversed */
+} pwm_byte_data_swap_t;
 
-/*! @brief PWM counter initialization options */
-typedef enum _pwm_init_source
+/*! @brief PWM half-word data swap select. */
+typedef enum _pwm_half_word_data_swap
 {
-    kPWM_Initialize_LocalSync = 0U, /*!< Local sync causes initialization */
-    kPWM_Initialize_MasterReload,   /*!< Master reload from submodule 0 causes initialization */
-    kPWM_Initialize_MasterSync,     /*!< Master sync from submodule 0 causes initialization */
-    kPWM_Initialize_ExtSync         /*!< EXT_SYNC causes initialization */
-} pwm_init_source_t;
+    kPWM_HalfWordNoSwap = 0U, /*!< Half word swapping does not take place */
+    kPWM_HalfWordSwap         /*!< Half word from write data bus are swapped */
+} pwm_half_word_data_swap_t;
 
-/*! @brief PWM load frequency selection */
-typedef enum _pwm_load_frequency
+/*! @brief PWM Output Configuration */
+typedef enum _pwm_output_configuration
 {
-    kPWM_LoadEveryOportunity = 0U, /*!< Every PWM opportunity */
-    kPWM_LoadEvery2Oportunity,     /*!< Every 2 PWM opportunities */
-    kPWM_LoadEvery3Oportunity,     /*!< Every 3 PWM opportunities */
-    kPWM_LoadEvery4Oportunity,     /*!< Every 4 PWM opportunities */
-    kPWM_LoadEvery5Oportunity,     /*!< Every 5 PWM opportunities */
-    kPWM_LoadEvery6Oportunity,     /*!< Every 6 PWM opportunities */
-    kPWM_LoadEvery7Oportunity,     /*!< Every 7 PWM opportunities */
-    kPWM_LoadEvery8Oportunity,     /*!< Every 8 PWM opportunities */
-    kPWM_LoadEvery9Oportunity,     /*!< Every 9 PWM opportunities */
-    kPWM_LoadEvery10Oportunity,    /*!< Every 10 PWM opportunities */
-    kPWM_LoadEvery11Oportunity,    /*!< Every 11 PWM opportunities */
-    kPWM_LoadEvery12Oportunity,    /*!< Every 12 PWM opportunities */
-    kPWM_LoadEvery13Oportunity,    /*!< Every 13 PWM opportunities */
-    kPWM_LoadEvery14Oportunity,    /*!< Every 14 PWM opportunities */
-    kPWM_LoadEvery15Oportunity,    /*!< Every 15 PWM opportunities */
-    kPWM_LoadEvery16Oportunity     /*!< Every 16 PWM opportunities */
-} pwm_load_frequency_t;
+    kPWM_SetAtRolloverAndClearAtcomparison = 0U, /*!< Output pin is set at rollover and cleared at comparison */
+    kPWM_ClearAtRolloverAndSetAtcomparison,      /*!< Output pin is cleared at rollover and set at comparison */
+    kPWM_NoConfigure                             /*!< PWM output is disconnected */
+} pwm_output_configuration_t;
 
-/*! @brief List of PWM fault selections */
-typedef enum _pwm_fault_input
+/*!
+ * @brief PWM FIFO sample repeat
+ * It determines the number of times each sample from the FIFO is to be used.
+ */
+typedef enum _pwm_sample_repeat
 {
-    kPWM_Fault_0 = 0U, /*!< Fault 0 input pin */
-    kPWM_Fault_1,      /*!< Fault 1 input pin */
-    kPWM_Fault_2,      /*!< Fault 2 input pin */
-    kPWM_Fault_3       /*!< Fault 3 input pin */
-} pwm_fault_input_t;
-
-/*! @brief PWM capture edge select */
-typedef enum _pwm_input_capture_edge
-{
-    kPWM_Disable = 0U,   /*!< Disabled */
-    kPWM_FallingEdge,    /*!< Capture on falling edge only */
-    kPWM_RisingEdge,     /*!< Capture on rising edge only */
-    kPWM_RiseAndFallEdge /*!< Capture on rising or falling edge */
-} pwm_input_capture_edge_t;
-
-/*! @brief PWM output options when a FORCE_OUT signal is asserted */
-typedef enum _pwm_force_signal
-{
-    kPWM_UsePwm = 0U,     /*!< Generated PWM signal is used by the deadtime logic.*/
-    kPWM_InvertedPwm,     /*!< Inverted PWM signal is used by the deadtime logic.*/
-    kPWM_SoftwareControl, /*!< Software controlled value is used by the deadtime logic. */
-    kPWM_UseExternal      /*!< PWM_EXTA signal is used by the deadtime logic. */
-} pwm_force_signal_t;
-
-/*! @brief Options available for the PWM A & B pair operation */
-typedef enum _pwm_chnl_pair_operation
-{
-    kPWM_Independent = 0U,  /*!< PWM A & PWM B operate as 2 independent channels */
-    kPWM_ComplementaryPwmA, /*!< PWM A & PWM B are complementary channels, PWM A generates the signal */
-    kPWM_ComplementaryPwmB  /*!< PWM A & PWM B are complementary channels, PWM B generates the signal */
-} pwm_chnl_pair_operation_t;
-
-/*! @brief Options available on how to load the buffered-registers with new values */
-typedef enum _pwm_register_reload
-{
-    kPWM_ReloadImmediate = 0U,     /*!< Buffered-registers get loaded with new values as soon as LDOK bit is set */
-    kPWM_ReloadPwmHalfCycle,       /*!< Registers loaded on a PWM half cycle */
-    kPWM_ReloadPwmFullCycle,       /*!< Registers loaded on a PWM full cycle */
-    kPWM_ReloadPwmHalfAndFullCycle /*!< Registers loaded on a PWM half & full cycle */
-} pwm_register_reload_t;
-
-/*! @brief Options available on how to re-enable the PWM output when recovering from a fault */
-typedef enum _pwm_fault_recovery_mode
-{
-    kPWM_NoRecovery = 0U,        /*!< PWM output will stay inactive */
-    kPWM_RecoverHalfCycle,       /*!< PWM output re-enabled at the first half cycle */
-    kPWM_RecoverFullCycle,       /*!< PWM output re-enabled at the first full cycle */
-    kPWM_RecoverHalfAndFullCycle /*!< PWM output re-enabled at the first half or full cycle */
-} pwm_fault_recovery_mode_t;
+    kPWM_EachSampleOnce = 0u, /*!< Use each sample once */
+    kPWM_EachSampletwice,     /*!< Use each sample twice */
+    kPWM_EachSampleFourTimes, /*!< Use each sample four times */
+    kPWM_EachSampleEightTimes /*!< Use each sample eight times */
+} pwm_sample_repeat_t;
 
 /*! @brief List of PWM interrupt options */
 typedef enum _pwm_interrupt_enable
 {
-    kPWM_CompareVal0InterruptEnable = (1U << 0),  /*!< PWM VAL0 compare interrupt */
-    kPWM_CompareVal1InterruptEnable = (1U << 1),  /*!< PWM VAL1 compare interrupt */
-    kPWM_CompareVal2InterruptEnable = (1U << 2),  /*!< PWM VAL2 compare interrupt */
-    kPWM_CompareVal3InterruptEnable = (1U << 3),  /*!< PWM VAL3 compare interrupt */
-    kPWM_CompareVal4InterruptEnable = (1U << 4),  /*!< PWM VAL4 compare interrupt */
-    kPWM_CompareVal5InterruptEnable = (1U << 5),  /*!< PWM VAL5 compare interrupt */
-    kPWM_CaptureX0InterruptEnable   = (1U << 6),  /*!< PWM capture X0 interrupt */
-    kPWM_CaptureX1InterruptEnable   = (1U << 7),  /*!< PWM capture X1 interrupt */
-    kPWM_CaptureB0InterruptEnable   = (1U << 8),  /*!< PWM capture B0 interrupt */
-    kPWM_CaptureB1InterruptEnable   = (1U << 9),  /*!< PWM capture B1 interrupt */
-    kPWM_CaptureA0InterruptEnable   = (1U << 10), /*!< PWM capture A0 interrupt */
-    kPWM_CaptureA1InterruptEnable   = (1U << 11), /*!< PWM capture A1 interrupt */
-    kPWM_ReloadInterruptEnable      = (1U << 12), /*!< PWM reload interrupt */
-    kPWM_ReloadErrorInterruptEnable = (1U << 13), /*!< PWM reload error interrupt */
-    kPWM_Fault0InterruptEnable      = (1U << 16), /*!< PWM fault 0 interrupt */
-    kPWM_Fault1InterruptEnable      = (1U << 17), /*!< PWM fault 1 interrupt */
-    kPWM_Fault2InterruptEnable      = (1U << 18), /*!< PWM fault 2 interrupt */
-    kPWM_Fault3InterruptEnable      = (1U << 19)  /*!< PWM fault 3 interrupt */
+    kPWM_FIFOEmptyInterruptEnable = (1U << 0), /*!< This bit controls the generation of the FIFO Empty interrupt. */
+    kPWM_RolloverInterruptEnable  = (1U << 1), /*!< This bit controls the generation of the Rollover interrupt. */
+    kPWM_CompareInterruptEnable   = (1U << 2)  /*!< This bit controls the generation of the Compare interrupt */
 } pwm_interrupt_enable_t;
 
 /*! @brief List of PWM status flags */
 typedef enum _pwm_status_flags
 {
-    kPWM_CompareVal0Flag = (1U << 0),  /*!< PWM VAL0 compare flag */
-    kPWM_CompareVal1Flag = (1U << 1),  /*!< PWM VAL1 compare flag */
-    kPWM_CompareVal2Flag = (1U << 2),  /*!< PWM VAL2 compare flag */
-    kPWM_CompareVal3Flag = (1U << 3),  /*!< PWM VAL3 compare flag */
-    kPWM_CompareVal4Flag = (1U << 4),  /*!< PWM VAL4 compare flag */
-    kPWM_CompareVal5Flag = (1U << 5),  /*!< PWM VAL5 compare flag */
-    kPWM_CaptureX0Flag   = (1U << 6),  /*!< PWM capture X0 flag */
-    kPWM_CaptureX1Flag   = (1U << 7),  /*!< PWM capture X1 flag */
-    kPWM_CaptureB0Flag   = (1U << 8),  /*!< PWM capture B0 flag */
-    kPWM_CaptureB1Flag   = (1U << 9),  /*!< PWM capture B1 flag */
-    kPWM_CaptureA0Flag   = (1U << 10), /*!< PWM capture A0 flag */
-    kPWM_CaptureA1Flag   = (1U << 11), /*!< PWM capture A1 flag */
-    kPWM_ReloadFlag      = (1U << 12), /*!< PWM reload flag */
-    kPWM_ReloadErrorFlag = (1U << 13), /*!< PWM reload error flag */
-    kPWM_RegUpdatedFlag  = (1U << 14), /*!< PWM registers updated flag */
-    kPWM_Fault0Flag      = (1U << 16), /*!< PWM fault 0 flag */
-    kPWM_Fault1Flag      = (1U << 17), /*!< PWM fault 1 flag */
-    kPWM_Fault2Flag      = (1U << 18), /*!< PWM fault 2 flag */
-    kPWM_Fault3Flag      = (1U << 19)  /*!< PWM fault 3 flag */
+    kPWM_FIFOEmptyFlag = (1U << 3), /*!< This bit indicates the FIFO data level in comparison to the water
+                                         level set by FWM field in the control register. */
+    kPWM_RolloverFlag = (1U << 4),  /*!< This bit shows that a roll-over event has occurred. */
+    kPWM_CompareFlag  = (1U << 5),  /*!< This bit shows that a compare event has occurred. */
+    kPWM_FIFOWriteErrorFlag =
+        (1U << 6) /*!< This bit shows that an attempt has been made to write FIFO when it is full. */
 } pwm_status_flags_t;
 
-/*! @brief PWM operation mode */
-typedef enum _pwm_mode
+/*! @brief List of PWM FIFO available */
+typedef enum _pwm_fifo_available
 {
-    kPWM_SignedCenterAligned = 0U, /*!< Signed center-aligned */
-    kPWM_CenterAligned,            /*!< Unsigned cente-aligned */
-    kPWM_SignedEdgeAligned,        /*!< Signed edge-aligned */
-    kPWM_EdgeAligned               /*!< Unsigned edge-aligned */
-} pwm_mode_t;
+    kPWM_NoDataInFIFOFlag = 0U, /*!< No data available */
+    kPWM_OneWordInFIFOFlag,     /*!< 1 word of data in FIFO */
+    kPWM_TwoWordsInFIFOFlag,    /*!< 2 word of data in FIFO */
+    kPWM_ThreeWordsInFIFOFlag,  /*!< 3 word of data in FIFO */
+    kPWM_FourWordsInFIFOFlag    /*!< 4 word of data in FIFO */
+} pwm_fifo_available_t;
 
-/*! @brief PWM output pulse mode, high-true or low-true */
-typedef enum _pwm_level_select
-{
-    kPWM_HighTrue = 0U, /*!< High level represents "on" or "active" state */
-    kPWM_LowTrue        /*!< Low level represents "on" or "active" state */
-} pwm_level_select_t;
-
-/*! @brief PWM reload source select */
-typedef enum _pwm_reload_source_select
-{
-    kPWM_LocalReload = 0U, /*!< The local reload signal is used to reload registers */
-    kPWM_MasterReload      /*!< The master reload signal (from submodule 0) is used to reload */
-} pwm_reload_source_select_t;
-
-/*! @brief PWM fault clearing options */
-typedef enum _pwm_fault_clear
-{
-    kPWM_Automatic = 0U, /*!< Automatic fault clearing  */
-    kPWM_ManualNormal,   /*!< Manual fault clearing with no fault safety mode */
-    kPWM_ManualSafety    /*!< Manual fault clearing with fault safety mode */
-} pwm_fault_clear_t;
-
-/*! @brief Options for submodule master control operation */
-typedef enum _pwm_module_control
-{
-    kPWM_Control_Module_0 = (1U << 0), /*!< Control submodule 0's start/stop,buffer reload operation */
-    kPWM_Control_Module_1 = (1U << 1), /*!< Control submodule 1's start/stop,buffer reload operation */
-    kPWM_Control_Module_2 = (1U << 2), /*!< Control submodule 2's start/stop,buffer reload operation */
-    kPWM_Control_Module_3 = (1U << 3)  /*!< Control submodule 3's start/stop,buffer reload operation */
-} pwm_module_control_t;
-
-/*! @brief Structure for the user to define the PWM signal characteristics */
-typedef struct _pwm_signal_param
-{
-    pwm_channels_t pwmChannel; /*!< PWM channel being configured; PWM A or PWM B */
-    uint8_t dutyCyclePercent;  /*!< PWM pulse width, value should be between 0 to 100
-                                    0=inactive signal(0% duty cycle)...
-                                    100=always active signal (100% duty cycle)*/
-    pwm_level_select_t level;  /*!< PWM output active level select */
-    uint16_t deadtimeValue;    /*!< The deadtime value; only used if channel pair is operating in complementary mode */
-} pwm_signal_param_t;
-
-/*!
- * @brief PWM config structure
- *
- * This structure holds the configuration settings for the PWM peripheral. To initialize this
- * structure to reasonable defaults, call the PWM_GetDefaultConfig() function and pass a
- * pointer to your config structure instance.
- *
- * The config struct can be made const so it resides in flash
- */
 typedef struct _pwm_config
 {
-    bool enableDebugMode;                    /*!< true: PWM continues to run in debug mode;
-                                                  false: PWM is paused in debug mode */
-    bool enableWait;                         /*!< true: PWM continues to run in WAIT mode;
-                                                  false: PWM is paused in WAIT mode */
-    uint8_t faultFilterCount;                /*!< Fault filter count */
-    uint8_t faultFilterPeriod;               /*!< Fault filter period;value of 0 will bypass the filter */
-    pwm_init_source_t initializationControl; /*!< Option to initialize the counter */
+    bool enableStopMode;                     /*!< True: PWM continues to run in stop mode;
+                                                  False: PWM is paused in stop mode. */
+    bool enableDozeMode;                     /*!< True: PWM continues to run in doze mode;
+                                                  False: PWM is paused in doze mode. */
+    bool enableWaitMode;                     /*!< True: PWM continues to run in wait mode;
+                                                  False: PWM is paused in wait mode. */
+    bool enableDebugMode;                    /*!< True: PWM continues to run in debug mode;
+                                                  False: PWM is paused in debug mode. */
+    uint16_t prescale;                       /*!< Pre-scaler to divide down the clock
+                                                  The prescaler value is not more than 0xFFF. Divide by (value + 1)*/
     pwm_clock_source_t clockSource;          /*!< Clock source for the counter */
-    pwm_clock_prescale_t prescale;           /*!< Pre-scaler to divide down the clock */
-    pwm_chnl_pair_operation_t pairOperation; /*!< Channel pair in indepedent or complementary mode */
-    pwm_register_reload_t reloadLogic;       /*!< PWM Reload logic setup */
-    pwm_reload_source_select_t reloadSelect; /*!< Reload source select */
-    pwm_load_frequency_t reloadFrequency;    /*!< Specifies when to reload, used when user's choice
-                                                  is not immediate reload */
-    pwm_force_output_trigger_t forceTrigger; /*!< Specify which signal will trigger a FORCE_OUT */
+    pwm_output_configuration_t outputConfig; /*!< Set the mode of the PWM output on the output pin. */
+    pwm_fifo_water_mark_t fifoWater;         /*!< Set the data level for FIFO. */
+    pwm_sample_repeat_t sampleRepeat;        /*!< The number of times each sample from the FIFO is to be used. */
+    pwm_byte_data_swap_t byteSwap; /*!< It determines the byte ordering of the 16-bit data when it goes into the
+                                        FIFO from the sample register. */
+    pwm_half_word_data_swap_t halfWordSwap; /*!< It determines which half word data from the 32-bit IP Bus interface is
+                                                 written into the lower 16 bits of the sample register. */
 } pwm_config_t;
-
-/*! @brief Structure is used to hold the parameters to configure a PWM fault */
-typedef struct _pwm_fault_param
-{
-    pwm_fault_clear_t faultClearingMode;   /*!< Fault clearing mode to use */
-    bool faultLevel;                       /*!< true: Logic 1 indicates fault;
-                                                false: Logic 0 indicates fault */
-    bool enableCombinationalPath;          /*!< true: Combinational Path from fault input is enabled;
-                                                false: No combination path is available */
-    pwm_fault_recovery_mode_t recoverMode; /*!< Specify when to re-enable the PWM output */
-} pwm_fault_param_t;
-
-/*!
- * @brief Structure is used to hold parameters to configure the capture capability of a signal pin
- */
-typedef struct _pwm_input_capture_param
-{
-    bool captureInputSel;           /*!< true: Use the edge counter signal as source
-                                         false: Use the raw input signal from the pin as source */
-    uint8_t edgeCompareValue;       /*!< Compare value, used only if edge counter is used as source */
-    pwm_input_capture_edge_t edge0; /*!< Specify which edge causes a capture for input circuitry 0 */
-    pwm_input_capture_edge_t edge1; /*!< Specify which edge causes a capture for input circuitry 1 */
-    bool enableOneShotCapture;      /*!< true: Use one-shot capture mode;
-                                         false: Use free-running capture mode */
-    uint8_t fifoWatermark;          /*!< Watermark level for capture FIFO. The capture flags in
-                                         the status register will set if the word count in the FIFO
-                                         is greater than this watermark level */
-} pwm_input_capture_param_t;
 
 /*******************************************************************************
  * API
@@ -341,43 +146,40 @@ extern "C" {
  */
 
 /*!
- * @brief Ungates the PWM submodule clock and configures the peripheral for basic operation.
+ * @brief Ungates the PWM clock and configures the peripheral for basic operation.
  *
  * @note This API should be called at the beginning of the application using the PWM driver.
  *
  * @param base      PWM peripheral base address
- * @param subModule PWM submodule to configure
  * @param config    Pointer to user's PWM config structure.
  *
  * @return kStatus_Success means success; else failed.
  */
-status_t PWM_Init(PWM_Type *base, pwm_submodule_t subModule, const pwm_config_t *config);
+status_t PWM_Init(PWM_Type *base, const pwm_config_t *config);
 
 /*!
  * @brief Gate the PWM submodule clock
  *
  * @param base      PWM peripheral base address
- * @param subModule PWM submodule to deinitialize
  */
-void PWM_Deinit(PWM_Type *base, pwm_submodule_t subModule);
+void PWM_Deinit(PWM_Type *base);
 
 /*!
  * @brief  Fill in the PWM config struct with the default settings
  *
  * The default values are:
  * @code
- *   config->enableDebugMode = false;
- *   config->enableWait = false;
- *   config->reloadSelect = kPWM_LocalReload;
- *   config->faultFilterCount = 0;
- *   config->faultFilterPeriod = 0;
- *   config->clockSource = kPWM_BusClock;
- *   config->prescale = kPWM_Prescale_Divide_1;
- *   config->initializationControl = kPWM_Initialize_LocalSync;
- *   config->forceTrigger = kPWM_Force_Local;
- *   config->reloadFrequency = kPWM_LoadEveryOportunity;
- *   config->reloadLogic = kPWM_ReloadImmediate;
- *   config->pairOperation = kPWM_Independent;
+ *   config->enableStopMode = false;
+ *   config->enableDozeMode = false;
+ *   config->enableWaitMode = false;
+ *   config->enableDozeMode = false;
+ *   config->clockSource = kPWM_LowFrequencyClock;
+ *   config->prescale = 0U;
+ *   config->outputConfig = kPWM_SetAtRolloverAndClearAtcomparison;
+ *   config->fifoWater = kPWM_FIFOWaterMark_2;
+ *   config->sampleRepeat = kPWM_EachSampleOnce;
+ *   config->byteSwap = kPWM_ByteNoSwap;
+ *   config->halfWordSwap = kPWM_HalfWordNoSwap;
  * @endcode
  * @param config Pointer to user's PWM config structure.
  */
@@ -386,137 +188,90 @@ void PWM_GetDefaultConfig(pwm_config_t *config);
 /*! @}*/
 
 /*!
- * @name Module PWM output
+ * @name PWM start and stop.
  * @{
  */
-/*!
- * @brief Sets up the PWM signals for a PWM submodule.
- *
- * The function initializes the submodule according to the parameters passed in by the user. The function
- * also sets up the value compare registers to match the PWM signal requirements.
- * If the dead time insertion logic is enabled, the pulse period is reduced by the
- * dead time period specified by the user.
- *
- * @param base        PWM peripheral base address
- * @param subModule   PWM submodule to configure
- * @param chnlParams  Array of PWM channel parameters to configure the channel(s)
- * @param numOfChnls  Number of channels to configure, this should be the size of the array passed in.
- *                    Array size should not be more than 2 as each submodule has 2 pins to output PWM
- * @param mode        PWM operation mode, options available in enumeration ::pwm_mode_t
- * @param pwmFreq_Hz  PWM signal frequency in Hz
- * @param srcClock_Hz PWM main counter clock in Hz.
- *
- * @return Returns kStatusFail if there was error setting up the signal; kStatusSuccess otherwise
- */
-status_t PWM_SetupPwm(PWM_Type *base,
-                      pwm_submodule_t subModule,
-                      const pwm_signal_param_t *chnlParams,
-                      uint8_t numOfChnls,
-                      pwm_mode_t mode,
-                      uint32_t pwmFreq_Hz,
-                      uint32_t srcClock_Hz);
 
 /*!
- * @brief Updates the PWM signal's dutycycle.
+ * @brief Starts the PWM counter when the PWM is enabled.
  *
- * The function updates the PWM dutycyle to the new value that is passed in.
- * If the dead time insertion logic is enabled then the pulse period is reduced by the
- * dead time period specified by the user.
+ * When the PWM is enabled, it begins a new period, the output pin is set to start a new period while
+ * the prescaler and counter are released and counting begins.
  *
- * @param base              PWM peripheral base address
- * @param subModule         PWM submodule to configure
- * @param pwmSignal         Signal (PWM A or PWM B) to update
- * @param currPwmMode       The current PWM mode set during PWM setup
- * @param dutyCyclePercent  New PWM pulse width, value should be between 0 to 100
- *                          0=inactive signal(0% duty cycle)...
- *                          100=active signal (100% duty cycle)
+ * @param base      PWM peripheral base address
  */
-void PWM_UpdatePwmDutycycle(PWM_Type *base,
-                            pwm_submodule_t subModule,
-                            pwm_channels_t pwmSignal,
-                            pwm_mode_t currPwmMode,
-                            uint8_t dutyCyclePercent);
+static inline void PWM_StartTimer(PWM_Type *base)
+{
+    base->PWMCR |= PWM_PWMCR_EN_MASK;
+}
+
+/*!
+ * @brief Stops the PWM counter when the pwm is disabled.
+ *
+ * @param base      PWM peripheral base address
+ */
+static inline void PWM_StopTimer(PWM_Type *base)
+{
+    base->PWMCR &= ~(PWM_PWMCR_EN_MASK);
+}
 
 /*! @}*/
 
 /*!
- * @brief Sets up the PWM input capture
+ * @brief Sofrware reset.
  *
- * Each PWM submodule has 3 pins that can be configured for use as input capture pins. This function
- * sets up the capture parameters for each pin and enables the pin for input capture operation.
+ * PWM is reset when this bit is set to 1. It is a self clearing bit.
+ * Setting this bit resets all the registers to their reset values except for the STOPEN,
+ * DOZEN, WAITEN, and DBGEN bits in this control register.
  *
- * @param base               PWM peripheral base address
- * @param subModule          PWM submodule to configure
- * @param pwmChannel         Channel in the submodule to setup
- * @param inputCaptureParams Parameters passed in to set up the input pin
+ * @param base      PWM peripheral base address
  */
-void PWM_SetupInputCapture(PWM_Type *base,
-                           pwm_submodule_t subModule,
-                           pwm_channels_t pwmChannel,
-                           const pwm_input_capture_param_t *inputCaptureParams);
+static inline void PWM_SoftwareReset(PWM_Type *base)
+{
+    base->PWMCR |= PWM_PWMCR_SWR_MASK;
+}
 
 /*!
- * @brief Sets up the PWM fault protection.
- *
- * PWM has 4 fault inputs.
- *
- * @param base        PWM peripheral base address
- * @param faultNum    PWM fault to configure.
- * @param faultParams Pointer to the PWM fault config structure
- */
-void PWM_SetupFaults(PWM_Type *base, pwm_fault_input_t faultNum, const pwm_fault_param_t *faultParams);
-
-/*!
- * @brief Selects the signal to output on a PWM pin when a FORCE_OUT signal is asserted.
- *
- * The user specifies which channel to configure by supplying the submodule number and whether
- * to modify PWM A or PWM B within that submodule.
- *
- * @param base       PWM peripheral base address
- * @param subModule  PWM submodule to configure
- * @param pwmChannel Channel to configure
- * @param mode       Signal to output when a FORCE_OUT is triggered
- */
-void PWM_SetupForceSignal(PWM_Type *base,
-                          pwm_submodule_t subModule,
-                          pwm_channels_t pwmChannel,
-                          pwm_force_signal_t mode);
-
-/*!
- * @name Interrupts Interface
+ * @name Interrupt Interface
  * @{
  */
 
 /*!
- * @brief Enables the selected PWM interrupts
+ * @brief Enables the selected PWM interrupts.
  *
- * @param base      PWM peripheral base address
- * @param subModule PWM submodule to configure
- * @param mask      The interrupts to enable. This is a logical OR of members of the
- *                  enumeration ::pwm_interrupt_enable_t
+ * @param base PWM peripheral base address
+ * @param mask The interrupts to enable. This is a logical OR of members of the
+ *             enumeration ::pwm_interrupt_enable_t
  */
-void PWM_EnableInterrupts(PWM_Type *base, pwm_submodule_t subModule, uint32_t mask);
+static inline void PWM_EnableInterrupts(PWM_Type *base, uint32_t mask)
+{
+    base->PWMIR |= (mask & (PWM_PWMIR_FIE_MASK | PWM_PWMIR_RIE_MASK | PWM_PWMIR_CIE_MASK));
+}
 
 /*!
- * @brief Disables the selected PWM interrupts
+ * @brief Disables the selected PWM interrupts.
  *
- * @param base      PWM peripheral base address
- * @param subModule PWM submodule to configure
- * @param mask      The interrupts to enable. This is a logical OR of members of the
- *                  enumeration ::pwm_interrupt_enable_t
+ * @param base PWM peripheral base address
+ * @param mask The interrupts to disable. This is a logical OR of members of the
+ *             enumeration ::pwm_interrupt_enable_t
  */
-void PWM_DisableInterrupts(PWM_Type *base, pwm_submodule_t subModule, uint32_t mask);
+static inline void PWM_DisableInterrupts(PWM_Type *base, uint32_t mask)
+{
+    base->PWMIR &= ~(mask & (PWM_PWMIR_FIE_MASK | PWM_PWMIR_RIE_MASK | PWM_PWMIR_CIE_MASK));
+}
 
 /*!
- * @brief Gets the enabled PWM interrupts
+ * @brief Gets the enabled PWM interrupts.
  *
- * @param base      PWM peripheral base address
- * @param subModule PWM submodule to configure
+ * @param base PWM peripheral base address
  *
  * @return The enabled interrupts. This is the logical OR of members of the
  *         enumeration ::pwm_interrupt_enable_t
  */
-uint32_t PWM_GetEnabledInterrupts(PWM_Type *base, pwm_submodule_t subModule);
+static inline uint32_t PWM_GetEnabledInterrupts(PWM_Type *base)
+{
+    return base->PWMIR;
+}
 
 /*! @}*/
 
@@ -526,138 +281,116 @@ uint32_t PWM_GetEnabledInterrupts(PWM_Type *base, pwm_submodule_t subModule);
  */
 
 /*!
- * @brief Gets the PWM status flags
+ * @brief Gets the PWM status flags.
  *
- * @param base      PWM peripheral base address
- * @param subModule PWM submodule to configure
+ * @param base PWM peripheral base address
  *
  * @return The status flags. This is the logical OR of members of the
  *         enumeration ::pwm_status_flags_t
  */
-uint32_t PWM_GetStatusFlags(PWM_Type *base, pwm_submodule_t subModule);
+static inline uint32_t PWM_GetStatusFlags(PWM_Type *base)
+{
+    uint32_t statusFlags = base->PWMSR;
+
+    statusFlags &= (PWM_PWMSR_FE_MASK | PWM_PWMSR_ROV_MASK | PWM_PWMSR_CMP_MASK | PWM_PWMSR_FWE_MASK);
+    return statusFlags;
+}
 
 /*!
- * @brief Clears the PWM status flags
+ * @brief Clears the PWM status flags.
  *
- * @param base      PWM peripheral base address
- * @param subModule PWM submodule to configure
- * @param mask      The status flags to clear. This is a logical OR of members of the
- *                  enumeration ::pwm_status_flags_t
+ * @param base PWM peripheral base address
+ * @param mask The status flags to clear. This is a logical OR of members of the
+ *             enumeration ::pwm_status_flags_t
  */
-void PWM_ClearStatusFlags(PWM_Type *base, pwm_submodule_t subModule, uint32_t mask);
+static inline void PWM_clearStatusFlags(PWM_Type *base, uint32_t mask)
+{
+    base->PWMSR = (mask & (PWM_PWMSR_FE_MASK | PWM_PWMSR_ROV_MASK | PWM_PWMSR_CMP_MASK | PWM_PWMSR_FWE_MASK));
+}
+
+/*!
+ * @brief Gets the PWM FIFO available.
+ *
+ * @param base PWM peripheral base address
+ *
+ * @return The status flags. This is the logical OR of members of the
+ *         enumeration ::pwm_fifo_available_t
+ */
+static inline uint32_t PWM_GetFIFOAvailable(PWM_Type *base)
+{
+    return (base->PWMSR & PWM_PWMSR_FIFOAV_MASK);
+}
 
 /*! @}*/
 
 /*!
- * @name Timer Start and Stop
+ * @name Sample Interface
  * @{
  */
 
 /*!
- * @brief Starts the PWM counter for a single or multiple submodules.
+ * @brief Sets the PWM sample value.
  *
- * Sets the Run bit which enables the clocks to the PWM submodule. This function can start multiple
- * submodules at the same time.
- *
- * @param base              PWM peripheral base address
- * @param subModulesToStart PWM submodules to start. This is a logical OR of members of the
- *                          enumeration ::pwm_module_control_t
+ * @param base PWM peripheral base address
+ * @param mask The sample value. This is the input to the 4x16 FIFO. The value in this register denotes
+ *             the value of the sample being currently used.
  */
-static inline void PWM_StartTimer(PWM_Type *base, uint8_t subModulesToStart)
+static inline void PWM_SetSampleValue(PWM_Type *base, uint32_t value)
 {
-    base->MCTRL |= PWM_MCTRL_RUN(subModulesToStart);
+    base->PWMSAR = (value & PWM_PWMSAR_SAMPLE_MASK);
 }
 
 /*!
- * @brief Stops the PWM counter for a single or multiple submodules.
+ * @brief Gets the PWM sample value.
  *
- * Clears the Run bit which resets the submodule's counter. This function can stop multiple
- * submodules at the same time.
+ * @param base PWM peripheral base address
  *
- * @param base             PWM peripheral base address
- * @param subModulesToStop PWM submodules to stop. This is a logical OR of members of the
- *                         enumeration ::pwm_module_control_t
+ * @return The sample value. It can be read only when the PWM is enable.
  */
-static inline void PWM_StopTimer(PWM_Type *base, uint8_t subModulesToStop)
+static inline uint32_t PWM_GetSampleValue(PWM_Type *base)
 {
-    base->MCTRL &= ~(PWM_MCTRL_RUN(subModulesToStop));
+    return base->PWMSAR;
 }
 
 /*! @}*/
 
 /*!
- * @brief Enables or disables the PWM output trigger.
+ * @brief Sets the PWM period value.
  *
- * This function allows the user to enable or disable the PWM trigger. The PWM has 2 triggers. Trigger 0
- * is activated when the counter matches VAL 0, VAL 2, or VAL 4 register. Trigger 1 is activated
- * when the counter matches VAL 1, VAL 3, or VAL 5 register.
- *
- * @param base          PWM peripheral base address
- * @param subModule     PWM submodule to configure
- * @param valueRegister Value register that will activate the trigger
- * @param activate      true: Enable the trigger; false: Disable the trigger
+ * @param base PWM peripheral base address
+ * @param mask The period value. The PWM period register (PWM_PWMPR) determines the period of
+ *             the PWM output signal.
+ *             Writing 0xFFFF to this register will achieve the same result as writing 0xFFFE.
+ *             PWMO (Hz) = PCLK(Hz) / (period +2)
  */
-static inline void PWM_OutputTriggerEnable(PWM_Type *base,
-                                           pwm_submodule_t subModule,
-                                           pwm_value_register_t valueRegister,
-                                           bool activate)
+static inline void PWM_SetPeriodValue(PWM_Type *base, uint32_t value)
 {
-    if (activate)
-    {
-        base->SM[subModule].TCTRL |= (1U << valueRegister);
-    }
-    else
-    {
-        base->SM[subModule].TCTRL &= ~(1U << valueRegister);
-    }
+    base->PWMPR = (value & PWM_PWMPR_PERIOD_MASK);
 }
 
 /*!
- * @brief Sets the software control output for a pin to high or low.
+ * @brief Gets the PWM period value.
  *
- * The user specifies which channel to modify by supplying the submodule number and whether
- * to modify PWM A or PWM B within that submodule.
+ * @param base PWM peripheral base address
  *
- * @param base       PWM peripheral base address
- * @param subModule  PWM submodule to configure
- * @param pwmChannel Channel to configure
- * @param value      true: Supply a logic 1, false: Supply a logic 0.
+ * @return The period value. The PWM period register (PWM_PWMPR) determines the period of
+ *             the PWM output signal.
  */
-static inline void PWM_SetupSwCtrlOut(PWM_Type *base, pwm_submodule_t subModule, pwm_channels_t pwmChannel, bool value)
+static inline uint32_t PWM_GetPeriodValue(PWM_Type *base)
 {
-    if (value)
-    {
-        base->SWCOUT |= (1U << ((subModule * PWM_SUBMODULE_SWCONTROL_WIDTH) + pwmChannel));
-    }
-    else
-    {
-        base->SWCOUT &= ~(1U << ((subModule * PWM_SUBMODULE_SWCONTROL_WIDTH) + pwmChannel));
-    }
+    return (base->PWMPR & PWM_PWMPR_PERIOD_MASK);
 }
 
 /*!
- * @brief Sets or clears the PWM LDOK bit on a single or multiple submodules
+ * @brief Gets the PWM counter value.
  *
- * Set LDOK bit to load buffered values into CTRL[PRSC] and the INIT, FRACVAL and VAL registers. The
- * values are loaded immediately if kPWM_ReloadImmediate option was choosen during config. Else the
- * values are loaded at the next PWM reload point.
- * This function can issue the load command to multiple submodules at the same time.
+ * @param base PWM peripheral base address
  *
- * @param base               PWM peripheral base address
- * @param subModulesToUpdate PWM submodules to update with buffered values. This is a logical OR of
- *                           members of the enumeration ::pwm_module_control_t
- * @param value              true: Set LDOK bit for the submodule list; false: Clear LDOK bit
+ * @return The counter value. The current count value.
  */
-static inline void PWM_SetPwmLdok(PWM_Type *base, uint8_t subModulesToUpdate, bool value)
+static inline uint32_t PWM_GetCounterValue(PWM_Type *base)
 {
-    if (value)
-    {
-        base->MCTRL |= PWM_MCTRL_LDOK(subModulesToUpdate);
-    }
-    else
-    {
-        base->MCTRL |= PWM_MCTRL_CLDOK(subModulesToUpdate);
-    }
+    return (base->PWMCNR & PWM_PWMCNR_COUNT_MASK);
 }
 
 #if defined(__cplusplus)
