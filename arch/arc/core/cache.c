@@ -15,13 +15,13 @@
 
 #include <kernel.h>
 #include <arch/cpu.h>
-#include <misc/util.h>
+#include <sys/util.h>
 #include <toolchain.h>
 #include <cache.h>
 #include <linker/linker-defs.h>
 #include <arch/arc/v2/aux_regs.h>
 #include <kernel_internal.h>
-#include <misc/__assert.h>
+#include <sys/__assert.h>
 #include <init.h>
 #include <stdbool.h>
 

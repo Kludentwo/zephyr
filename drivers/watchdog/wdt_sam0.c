@@ -6,7 +6,7 @@
  */
 
 #include <soc.h>
-#include <watchdog.h>
+#include <drivers/watchdog.h>
 
 #define LOG_LEVEL CONFIG_WDT_LOG_LEVEL
 #include <logging/log.h>
@@ -52,6 +52,7 @@ static void wdt_sam0_isr(struct device *dev)
 	struct wdt_sam0_dev_data *data = dev->driver_data;
 
 	WDT_REGS->INTFLAG.reg = WDT_INTFLAG_EW;
+
 	if (data->cb != NULL) {
 		data->cb(dev, 0);
 	}

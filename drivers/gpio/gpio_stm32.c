@@ -9,11 +9,11 @@
 #include <kernel.h>
 #include <device.h>
 #include <soc.h>
-#include <gpio.h>
+#include <drivers/gpio.h>
 #include <clock_control/stm32_clock_control.h>
 #include <pinmux/stm32/pinmux_stm32.h>
-#include <pinmux.h>
-#include <misc/util.h>
+#include <drivers/pinmux.h>
+#include <sys/util.h>
 #include <interrupt_controller/exti_stm32.h>
 
 #include "gpio_stm32.h"
@@ -194,12 +194,18 @@ const int gpio_stm32_enable_int(int port, int pin)
 	defined(CONFIG_SOC_SERIES_STM32F3X) || \
 	defined(CONFIG_SOC_SERIES_STM32F4X) || \
 	defined(CONFIG_SOC_SERIES_STM32F7X) || \
+	defined(CONFIG_SOC_SERIES_STM32H7X) || \
 	defined(CONFIG_SOC_SERIES_STM32L1X) || \
 	defined(CONFIG_SOC_SERIES_STM32L4X)
 	struct device *clk = device_get_binding(STM32_CLOCK_CONTROL_NAME);
 	struct stm32_pclken pclken = {
+#ifdef CONFIG_SOC_SERIES_STM32H7X
+		.bus = STM32_CLOCK_BUS_APB4,
+		.enr = LL_APB4_GRP1_PERIPH_SYSCFG
+#else
 		.bus = STM32_CLOCK_BUS_APB2,
 		.enr = LL_APB2_GRP1_PERIPH_SYSCFG
+#endif /* CONFIG_SOC_SERIES_STM32H7X */
 	};
 	/* Enable SYSCFG clock */
 	clock_control_on(clk, (clock_control_subsys_t *) &pclken);
@@ -261,6 +267,11 @@ static int gpio_stm32_config(struct device *dev, int access_op,
 		return -ENOTSUP;
 	}
 
+#if defined(CONFIG_STM32H7_DUAL_CORE)
+	while (LL_HSEM_1StepLock(HSEM, LL_HSEM_ID_1)) {
+	}
+#endif /* CONFIG_STM32H7_DUAL_CORE */
+
 	/* figure out if we can map the requested GPIO
 	 * configuration
 	 */
@@ -305,6 +316,10 @@ static int gpio_stm32_config(struct device *dev, int access_op,
 		}
 
 	}
+
+#if defined(CONFIG_STM32H7_DUAL_CORE)
+	LL_HSEM_ReleaseLock(HSEM, LL_HSEM_ID_1, HSEM_CR_COREID_CURRENT);
+#endif /* CONFIG_STM32H7_DUAL_CORE */
 
 	return 0;
 }

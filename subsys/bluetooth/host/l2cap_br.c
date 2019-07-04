@@ -9,9 +9,9 @@
 #include <zephyr.h>
 #include <string.h>
 #include <errno.h>
-#include <atomic.h>
-#include <misc/byteorder.h>
-#include <misc/util.h>
+#include <sys/atomic.h>
+#include <sys/byteorder.h>
+#include <sys/util.h>
 
 #include <bluetooth/hci.h>
 #include <bluetooth/bluetooth.h>
@@ -530,7 +530,7 @@ static void l2cap_br_conf(struct bt_l2cap_chan *chan)
 	conf->dcid = sys_cpu_to_le16(BR_CHAN(chan)->tx.cid);
 	/*
 	 * Add MTU option if app set non default BR/EDR L2CAP MTU,
-	 * otherwise sent emtpy configuration data meaning default MTU
+	 * otherwise sent empty configuration data meaning default MTU
 	 * to be used.
 	 */
 	if (BR_CHAN(chan)->rx.mtu != L2CAP_BR_DEFAULT_MTU) {
