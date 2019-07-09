@@ -14,11 +14,7 @@ config SOC_MIMX8MQ6_M4
 	select HAS_MCUX
 	select HAS_MCUX_CACHE
 	select HAS_MCUX_CCM
-	select CPU_HAS_FPU_DOUBLE_PRECISION
 	select CPU_HAS_ARM_MPU
-	select INIT_SYS_PLL
-	select INIT_USB1_PLL
-	select INIT_ENET_PLL
 
 
 endchoice
