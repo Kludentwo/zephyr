@@ -5,7 +5,7 @@
 # SPDX-License-Identifier: Apache-2.0
 #
 
-if BOARD_MCIMX8M_EVK_M4
+if BOARD_MCIMX8M_EVK
 
 config BOARD
 	default "MCIMX8M-EVK"
