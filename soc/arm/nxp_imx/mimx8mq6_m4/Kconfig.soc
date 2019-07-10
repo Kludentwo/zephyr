@@ -12,7 +12,6 @@ depends on SOC_SERIES_IMX8_M4
 config SOC_MIMX8MQ6_M4
 	bool "SOC_MIMX8MQ6_M4"
 	select HAS_MCUX
-	select HAS_MCUX_CACHE
 	select HAS_MCUX_CCM
 	select CPU_HAS_ARM_MPU
 
