@@ -19,6 +19,7 @@ extern "C" {
 #include <fsl_rdc.h>
 #include <fsl_clock.h>
 #include <fsl_iomuxc.h>
+#include <fsl_uart.h>
 
 #endif /* !_ASMLANGUAGE */
 

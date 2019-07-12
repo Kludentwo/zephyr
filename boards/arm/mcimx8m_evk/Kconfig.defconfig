@@ -35,9 +35,9 @@ config GPIO_IMX_PORT_7
 
 endif # GPIO_IMX
 
-if UART_IMX
+if UART_MCUX_IMX
 
-config UART_IMX_UART_2
+config UART_MCUX_IMX_UART_2
 	default y
 
 endif # UART_IMX
