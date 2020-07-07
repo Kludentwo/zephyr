@@ -20,6 +20,7 @@
 #include <drivers/uart.h>
 #include <fsl_common.h>
 #include <fsl_clock.h>
+#include <fsl_smc.h>
 #include <arch/cpu.h>
 #include <arch/arm/aarch32/cortex_m/cmsis.h>
 
@@ -85,6 +86,9 @@ static ALWAYS_INLINE void clock_init(void)
 {
 	CLOCK_SetSimSafeDivs();
 
+#if CONFIG_K6X_VLPR
+	CLOCK_BootToBlpiMode(0U, kMCG_IrcFast, kMCG_IrclkEnable);
+#else
 	CLOCK_InitOsc0(&oscConfig);
 	CLOCK_SetXtal0Freq(CONFIG_OSC_XTAL0_FREQ);
 
@@ -92,8 +96,22 @@ static ALWAYS_INLINE void clock_init(void)
 
 	CLOCK_SetInternalRefClkConfig(kMCG_IrclkEnable, kMCG_IrcSlow,
 				      CONFIG_MCG_FCRDIV);
-
+#endif
 	CLOCK_SetSimConfig(&simConfig);
+
+#if CONFIG_K6X_VLPR
+	/* Set VLPR power mode. */
+	SMC_SetPowerModeProtection(SMC, kSMC_AllowPowerModeAll);
+
+#if (defined(FSL_FEATURE_SMC_HAS_LPWUI) && FSL_FEATURE_SMC_HAS_LPWUI)
+	SMC_SetPowerModeVlpr(SMC, false);
+#else
+	SMC_SetPowerModeVlpr(SMC);
+#endif
+	while (SMC_GetPowerModeState(SMC) != kSMC_PowerStateVlpr)
+	{
+	}
+#endif
 
 #if CONFIG_ETH_MCUX
 	CLOCK_SetEnetTime0Clock(TIMESRC_OSCERCLK);

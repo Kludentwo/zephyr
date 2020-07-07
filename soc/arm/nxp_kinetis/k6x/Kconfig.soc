@@ -10,6 +10,7 @@ choice
 config SOC_MK64F12
 	bool "SOC_MK64F12"
 	select HAS_MCUX
+	select HAS_MCUX_SMC
 	select HAS_MCUX_ADC16
 	select HAS_MCUX_ENET
 	select HAS_MCUX_FLEXCAN
@@ -118,6 +119,13 @@ config K6X_FLASH_CLOCK_DIVIDER
 	help
 	  This option specifies the divide value for the K6X flash clock from the
 	  system clock.
+
+config K6X_VLPR
+	bool "Very Low Power RUN mode"
+	depends on SOC_MK64F12
+	default n
+	help
+	  This options enables support for Very Low Power RUN mode on K64F SoC.
 
 config K6X_HSRUN
 	bool "High Speed RUN mode"
