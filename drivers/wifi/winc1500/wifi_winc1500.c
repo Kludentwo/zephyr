@@ -304,8 +304,9 @@ static int winc1500_get(sa_family_t family,
 		return -1;
 	}
 
-	(*context)->offload_context = (void *)(sint32)socket(family, type, 0);
-	if ((*context)->offload_context < 0) {
+	// winc1500 atmel uses AF_INET = 2 instead of zephyrs AF_INET 1
+	(*context)->offload_context = (void *)(sint32)socket(2, type, 0);
+	if ((sint32)(*context)->offload_context < 0) {
 		LOG_ERR("socket error!");
 		return -1;
 	}
@@ -421,6 +422,7 @@ static int winc1500_accept(struct net_context *context,
 	int ret;
 
 	w1500_data.socket_data[socket].accept_cb = cb;
+	w1500_data.socket_data[socket].accept_user_data = user_data;
 
 	ret = accept(socket, NULL, 0);
 	if (ret) {
@@ -888,17 +890,27 @@ static void handle_socket_msg_accept(struct socket_data *sd, void *pvMsg)
 				      IPPROTO_TCP, &a_sd->context);
 		if (ret < 0) {
 			LOG_ERR("Cannot get new net context for ACCEPT");
-		} else {
-			a_sd->context->offload_context =
+			return;
+		}
+		a_sd->context->offload_context =
 				(void *)((int)accept_msg->sock);
+		// The iface is reset when getting a new context.
+		a_sd->context->iface = sd->context->iface;
 
-			sd->accept_cb(a_sd->context,
+		/** Setup remote */
+		a_sd->context->remote.sa_family = AF_INET;
+		net_sin(&a_sd->context->remote)->sin_port =
+			accept_msg->strAddr.sin_port;
+		net_sin(&a_sd->context->remote)->sin_addr.s_addr =
+			accept_msg->strAddr.sin_addr.s_addr;
+		a_sd->context->flags |= NET_CONTEXT_REMOTE_ADDR_SET;
+
+		sd->accept_cb(a_sd->context,
 				      (struct sockaddr *)&accept_msg->strAddr,
 				      sizeof(struct sockaddr_in),
 				      (accept_msg->sock > 0) ?
 				      0 : accept_msg->sock,
 				      sd->accept_user_data);
-		}
 	}
 }
 
@@ -1033,6 +1045,27 @@ static int winc1500_mgmt_disconnect(struct device *device)
 	return 0;
 }
 
+static int winc1500_mgmt_ap_enable(struct device *dev,
+			      struct wifi_connect_req_params *params)
+{
+	tstrM2MAPConfig strM2MAPConfig;
+	memset(&strM2MAPConfig, 0x00, sizeof(tstrM2MAPConfig));
+	strcpy((char *)&strM2MAPConfig.au8SSID, params->ssid);
+	strM2MAPConfig.u8ListenChannel = params->channel;
+	strM2MAPConfig.u8SecType = M2M_WIFI_SEC_OPEN; //params->security.
+	/* 192.168.1.1 */
+	strM2MAPConfig.au8DHCPServerIP[0] = 0xC0;
+	strM2MAPConfig.au8DHCPServerIP[1] = 0xA8;
+	strM2MAPConfig.au8DHCPServerIP[2] = 0x01;
+	strM2MAPConfig.au8DHCPServerIP[3] = 0x01;
+
+	if (M2M_SUCCESS != m2m_wifi_enable_ap(&strM2MAPConfig)){
+		return -EIO;
+	}
+
+	return 0;
+}
+
 static void winc1500_iface_init(struct net_if *iface)
 {
 	LOG_DBG("eth_init:net_if_set_link_addr:"
@@ -1053,6 +1086,7 @@ static const struct net_wifi_mgmt_offload winc1500_api = {
 	.scan		= winc1500_mgmt_scan,
 	.connect	= winc1500_mgmt_connect,
 	.disconnect	= winc1500_mgmt_disconnect,
+	.ap_enable	= winc1500_mgmt_ap_enable,
 };
 
 static int winc1500_init(struct device *dev)
