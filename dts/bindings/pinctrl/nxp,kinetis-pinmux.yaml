@@ -11,6 +11,14 @@ properties:
     clocks:
       required: true
 
-pinmux-cells:
-  - pin
-  - function
+child-binding:
+    title: foo
+    description: bar
+    properties:
+      pin:
+        required: true
+        type: int
+
+      mux:
+        required: true
+        type: int
